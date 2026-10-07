@@ -49,7 +49,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--txt);display:f
 #cart-panel{background:#fff;width:380px;max-width:95vw;height:100vh;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
 #cart-panel h2{font-size:18px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:8px}
 #cart-items{flex:1}
-.cart-item{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
 .cart-item-name{flex:1}
 .cart-item-ano{font-size:11px;color:var(--txt2)}
 .cart-qty{display:flex;align-items:center;gap:6px}
@@ -86,19 +86,24 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--txt);display:f
 <h2>🛒 Mi selección</h2>
 <div id="cart-items"><p class="cart-empty">Aún no has añadido vinos</p></div>
 <div class="cart-total" id="cart-total"></div>
+<button id="cart-discount-btn" onclick="toggleDiscount()" style="display:none;background:var(--gold);color:#fff;border:none;border-radius:6px;padding:9px 12px;font-size:13px;cursor:pointer;width:100%;margin-bottom:8px;font-weight:600">🏷️ Aplicar descuento 10%</button>
 <button id="btn-whatsapp" onclick="sendWhatsApp()">📱 Enviar por WhatsApp</button>
 <button id="btn-close-cart" onclick="closeCart()">Cerrar</button>
 </div>
 </div>
 <script>
 const cart={};
-function addToCart(btn){const n=btn.dataset.nombre,p=parseFloat(btn.dataset.precio),a=btn.dataset.ano;if(!cart[n])cart[n]={nombre:n,precio:p,ano:a,qty:0};cart[n].qty++;btn.textContent='✓ '+cart[n].qty;btn.classList.add('added');updateCartCount()}
+function addToCart(btn){const n=btn.dataset.nombre,p=parseFloat(btn.dataset.precio),a=btn.dataset.ano,img=btn.closest('.wine-card').querySelector('img')?btn.closest('.wine-card').querySelector('img').src:'';if(!cart[n])cart[n]={nombre:n,precio:p,ano:a,qty:0,img:img};cart[n].qty++;btn.textContent='✓ '+cart[n].qty;btn.classList.add('added');updateCartCount()}
 function updateCartCount(){const t=Object.values(cart).reduce((s,i)=>s+i.qty,0);document.getElementById('cart-count').textContent=t}
 function openCart(){renderCart();document.getElementById('cart-overlay').classList.add('open')}
 function closeCart(){document.getElementById('cart-overlay').classList.remove('open')}
-function renderCart(){const items=Object.values(cart).filter(i=>i.qty>0),el=document.getElementById('cart-items');if(!items.length){el.innerHTML='<p class="cart-empty">Aún no has añadido vinos</p>';document.getElementById('cart-total').textContent='';return}let total=0;el.innerHTML=items.map(item=>{total+=item.precio*item.qty;return`<div class="cart-item"><div class="cart-item-name">${item.nombre}<div class="cart-item-ano">${item.ano}</div></div><div class="cart-qty"><button onclick="changeQty('${item.nombre}',-1)">−</button><span>${item.qty}</span><button onclick="changeQty('${item.nombre}',1)">+</button></div><div style="min-width:52px;text-align:right;font-weight:bold">${(item.precio*item.qty).toFixed(2).replace('.',',')}€</div></div>`}).join('');document.getElementById('cart-total').textContent='Total: '+total.toFixed(2).replace('.',',')+' €'}
+let discountActive=false;
+function toggleDiscount(){discountActive=!discountActive;renderCart()}
+function renderCart(){const items=Object.values(cart).filter(i=>i.qty>0),el=document.getElementById('cart-items');if(!items.length){el.innerHTML='<p class="cart-empty">Aún no has añadido vinos</p>';document.getElementById('cart-total').innerHTML='';document.getElementById('cart-discount-btn').style.display='none';return}let total=0;el.innerHTML=items.map(item=>{const lineTotal=item.precio*item.qty;total+=lineTotal;const img=item.img?`<img src="${item.img}" style="width:38px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0">`:'<div style="width:38px;height:50px;background:var(--border);border-radius:4px;flex-shrink:0"></div>';return`<div class="cart-item">${img}<div class="cart-item-name">${item.nombre}<div class="cart-item-ano">${item.ano}</div></div><div class="cart-qty"><button onclick="changeQty('${item.nombre}',-1)">−</button><span>${item.qty}</span><button onclick="changeQty('${item.nombre}',1)">+</button></div><div style="min-width:52px;text-align:right;font-weight:bold">${lineTotal.toFixed(2).replace('.',',')}€</div></div>`}).join('');
+const discBtn=document.getElementById('cart-discount-btn');discBtn.style.display='block';discBtn.textContent=discountActive?'✓ Descuento 10% aplicado':'🏷️ Aplicar descuento 10%';discBtn.style.background=discountActive?'#5a9e6f':'var(--gold)';
+const finalTotal=discountActive?total*0.9:total;const totalEl=document.getElementById('cart-total');if(discountActive){totalEl.innerHTML=`<span style="text-decoration:line-through;color:var(--txt2);font-size:13px">${total.toFixed(2).replace('.',',')} €</span><br><span style="color:#5a9e6f">Total con descuento: ${finalTotal.toFixed(2).replace('.',',')} €</span>`}else{totalEl.innerHTML='Total: '+total.toFixed(2).replace('.',',')+' €'}}
 function changeQty(n,d){if(!cart[n])return;cart[n].qty=Math.max(0,cart[n].qty+d);if(cart[n].qty===0)delete cart[n];renderCart();updateCartCount();document.querySelectorAll('.btn-add').forEach(b=>{if(b.dataset.nombre===n){const i=cart[n];b.textContent=i&&i.qty>0?'✓ '+i.qty:'+ Añadir';i&&i.qty>0?b.classList.add('added'):b.classList.remove('added')}})}
-function sendWhatsApp(){const items=Object.values(cart).filter(i=>i.qty>0);if(!items.length)return alert('Añade vinos a tu selección primero');let msg='🍷 *Pedido envinando.es*\n\n';let total=0;items.forEach(i=>{msg+=`• ${i.nombre} (${i.ano}) × ${i.qty} = ${(i.precio*i.qty).toFixed(2)}€\n`;total+=i.precio*i.qty});msg+=`\n*Total: ${total.toFixed(2)}€*`;window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank')}
+function sendWhatsApp(){const items=Object.values(cart).filter(i=>i.qty>0);if(!items.length)return alert('Añade vinos a tu selección primero');let msg='🍷 *Pedido envinando.es*\n\n';let total=0;items.forEach(i=>{msg+=`• ${i.nombre} (${i.ano}) × ${i.qty} = ${(i.precio*i.qty).toFixed(2)}€\n`;total+=i.precio*i.qty});if(discountActive){msg+=`\n~~Total: ${total.toFixed(2)}€~~\n*Total con descuento 10%: ${(total*0.9).toFixed(2)}€*`}else{msg+=`\n*Total: ${total.toFixed(2)}€*`};window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank')}
 const sections=document.querySelectorAll('.do-section'),links=document.querySelectorAll('.do-link');
 const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const id=e.target.id.replace('do-','');links.forEach(l=>l.classList.toggle('active',l.dataset.do===id))}})},{rootMargin:'-20% 0px -70% 0px'});
 sections.forEach(s=>obs.observe(s));
