@@ -104,10 +104,46 @@ function openCart(){renderCart();document.getElementById('cart-overlay').classLi
 function closeCart(){document.getElementById('cart-overlay').classList.remove('open')}
 let discountActive=false;
 function toggleDiscount(){discountActive=!discountActive;renderCart()}
-function renderCart(){const items=Object.values(cart).filter(i=>i.qty>0),el=document.getElementById('cart-items');if(!items.length){el.innerHTML='<p class="cart-empty">Aún no has añadido vinos</p>';document.getElementById('cart-total').innerHTML='';document.getElementById('cart-discount-btn').style.display='none';return}let total=0;el.innerHTML=items.map(item=>{const lineTotal=item.precio*item.qty;total+=lineTotal;const img=item.img?`<img src="${item.img}" style="width:38px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0">`:'<div style="width:38px;height:50px;background:var(--border);border-radius:4px;flex-shrink:0"></div>';return`<div class="cart-item">${img}<div class="cart-item-name">${item.nombre}<div class="cart-item-ano">${item.ano}</div></div><div class="cart-qty"><button onclick="changeQty('${item.nombre}',-1)">−</button><span>${item.qty}</span><button onclick="changeQty('${item.nombre}',1)">+</button></div><div style="min-width:52px;text-align:right;font-weight:bold">${lineTotal.toFixed(2).replace('.',',')}€</div></div>`}).join('');
-const discBtn=document.getElementById('cart-discount-btn');discBtn.style.display='block';discBtn.textContent=discountActive?'✓ Descuento 10% aplicado':'🏷️ Aplicar descuento 10%';discBtn.style.background=discountActive?'#5a9e6f':'var(--gold)';
-const finalTotal=discountActive?total*0.9:total;const totalEl=document.getElementById('cart-total');if(discountActive){totalEl.innerHTML=`<span style="text-decoration:line-through;color:var(--txt2);font-size:13px">${total.toFixed(2).replace('.',',')} €</span><br><span style="color:#5a9e6f">Total con descuento: ${finalTotal.toFixed(2).replace('.',',')} €</span>`}else{totalEl.innerHTML='Total: '+total.toFixed(2).replace('.',',')+' €'}}
-function changeQty(n,d){if(!cart[n])return;cart[n].qty=Math.max(0,cart[n].qty+d);if(cart[n].qty===0)delete cart[n];renderCart();updateCartCount();document.querySelectorAll('.btn-add').forEach(b=>{if(b.dataset.nombre===n){const i=cart[n];b.textContent=i&&i.qty>0?'✓ '+i.qty:'+ Añadir';i&&i.qty>0?b.classList.add('added'):b.classList.remove('added')}})}
+function renderCart(){
+  const items=Object.values(cart).filter(i=>i.qty>0),el=document.getElementById('cart-items');
+  if(!items.length){
+    el.innerHTML='<p class="cart-empty">Aún no has añadido vinos</p>';
+    document.getElementById('cart-total').innerHTML='';
+    document.getElementById('cart-discount-btn').style.display='none';
+    return
+  }
+  let subtotal=0;
+  el.innerHTML=items.map(item=>{
+    const lineTotal=item.precio*item.qty;
+    subtotal+=lineTotal;
+    const img=item.img?`<img src="${item.img}" style="width:38px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0">`:'<div style="width:38px;height:50px;background:var(--border);border-radius:4px;flex-shrink:0"></div>';
+    return`<div class="cart-item">${img}<div class="cart-item-name">${item.nombre}<div class="cart-item-ano">${item.ano}</div></div><div class="cart-qty"><button onclick="changeQty('${item.nombre}',-1)">−</button><span>${item.qty}</span><button onclick="changeQty('${item.nombre}',1)">+</button></div><div style="min-width:52px;text-align:right;font-weight:bold">${lineTotal.toFixed(2).replace('.',',')}€</div></div>`
+  }).join('');
+  const discBtn=document.getElementById('cart-discount-btn');
+  discBtn.style.display='block';
+  discBtn.textContent=discountActive?'✓ Descuento 10% aplicado':'🏷️ Aplicar descuento 10%';
+  discBtn.style.background=discountActive?'#5a9e6f':'var(--gold)';
+  const finalTotal=discountActive?subtotal*0.9:subtotal;
+  const shipping=finalTotal>=150?0:7.90;
+  const grandTotal=finalTotal+shipping;
+  const totalEl=document.getElementById('cart-total');
+  let html='';
+  if(discountActive){
+    html+=`<div style="display:flex;justify-content:space-between;color:var(--txt2);font-size:13px"><span>Subtotal:</span><span style="text-decoration:line-through">${subtotal.toFixed(2).replace('.',',')} €</span></div>`;
+    html+=`<div style="display:flex;justify-content:space-between;color:#5a9e6f;font-size:13px"><span>Con descuento 10%:</span><span>${finalTotal.toFixed(2).replace('.',',')} €</span></div>`;
+  } else {
+    html+=`<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2)"><span>Subtotal:</span><span>${subtotal.toFixed(2).replace('.',',')} €</span></div>`;
+  }
+  if(shipping===0){
+    html+=`<div style="display:flex;justify-content:space-between;font-size:13px;color:#5a9e6f"><span>🚚 Envío:</span><span>Gratis</span></div>`;
+  } else {
+    const remaining=(150-finalTotal).toFixed(2).replace('.',',');
+    html+=`<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2)"><span>Gastos de envío:</span><span>7,90 €</span></div>`;
+    html+=`<div style="font-size:11px;color:var(--txt2);text-align:right;margin-top:2px">Añade ${remaining} € más para envío gratis</div>`;
+  }
+  html+=`<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:var(--gold);border-top:2px solid var(--border);padding-top:8px;margin-top:4px"><span>Total:</span><span>${grandTotal.toFixed(2).replace('.',',')} €</span></div>`;
+  totalEl.innerHTML=html;
+}
 function sendWhatsApp(){const items=Object.values(cart).filter(i=>i.qty>0);if(!items.length)return alert('Añade vinos a tu selección primero');let msg='🍷 *Pedido envinando.es*\n\n';let total=0;items.forEach(i=>{msg+=`• ${i.nombre} (${i.ano}) × ${i.qty} = ${(i.precio*i.qty).toFixed(2)}€\n`;total+=i.precio*i.qty});if(discountActive){msg+=`\n~~Total: ${total.toFixed(2)}€~~\n*Total con descuento 10%: ${(total*0.9).toFixed(2)}€*`}else{msg+=`\n*Total: ${total.toFixed(2)}€*`};window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank')}
 const sections=document.querySelectorAll('.do-section'),links=document.querySelectorAll('.do-link');
 const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const id=e.target.id.replace('do-','');links.forEach(l=>l.classList.toggle('active',l.dataset.do===id))}})},{rootMargin:'-20% 0px -70% 0px'});
